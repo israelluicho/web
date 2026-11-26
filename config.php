@@ -4,7 +4,7 @@ session_start();
 date_default_timezone_set('America/Lima');
 
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'biblioteca_db');
+define('DB_NAME', 'books');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
