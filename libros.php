@@ -1,0 +1,16 @@
+<?php
+require 'config.php'; require_login(); verify_csrf();
+$pdo=db();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $id=(int)($_POST['id']??0); $data=[trim($_POST['titulo']),trim($_POST['autor']),trim($_POST['isbn']),trim($_POST['categoria']),max(0,(int)$_POST['stock'])];
+ if($id){$q=$pdo->prepare('UPDATE libros SET titulo=?,autor=?,isbn=?,categoria=?,stock=? WHERE id=?');$q->execute([...$data,$id]);flash('Libro actualizado.');}
+ else{$q=$pdo->prepare('INSERT INTO libros(titulo,autor,isbn,categoria,stock) VALUES(?,?,?,?,?)');$q->execute($data);flash('Libro registrado.');}
+ header('Location: libros.php');exit;
+}
+if(isset($_GET['eliminar'])){try{$q=$pdo->prepare('DELETE FROM libros WHERE id=?');$q->execute([(int)$_GET['eliminar']]);flash('Libro eliminado.');}catch(PDOException $e){flash('No se puede eliminar: el libro tiene préstamos asociados.','danger');}header('Location: libros.php');exit;}
+$edit=null;if(isset($_GET['editar'])){$q=$pdo->prepare('SELECT * FROM libros WHERE id=?');$q->execute([(int)$_GET['editar']]);$edit=$q->fetch();}
+$rows=$pdo->query('SELECT * FROM libros ORDER BY id DESC')->fetchAll();$pageTitle='Gestión de libros';require 'partials/header.php';
+?>
+<div class="row g-4"><div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold"><?= $edit?'Editar libro':'Registrar libro'?></div><div class="card-body"><form method="post"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($edit['id']??'')?>"><div class="mb-3"><label class="form-label">Título</label><input class="form-control" name="titulo" required value="<?=e($edit['titulo']??'')?>"></div><div class="mb-3"><label class="form-label">Autor</label><input class="form-control" name="autor" required value="<?=e($edit['autor']??'')?>"></div><div class="mb-3"><label class="form-label">ISBN</label><input class="form-control" name="isbn" value="<?=e($edit['isbn']??'')?>"></div><div class="mb-3"><label class="form-label">Categoría</label><input class="form-control" name="categoria" value="<?=e($edit['categoria']??'')?>"></div><div class="mb-3"><label class="form-label">Stock disponible</label><input type="number" min="0" class="form-control" name="stock" required value="<?=e($edit['stock']??1)?>"></div><button class="btn btn-primary">Guardar</button> <a href="libros.php" class="btn btn-light">Limpiar</a></form></div></div></div>
+<div class="col-lg-8"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">Catálogo (<?=count($rows)?>)</div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Título / autor</th><th>ISBN</th><th>Categoría</th><th>Stock</th><th></th></tr></thead><tbody><?php foreach($rows as $r):?><tr><td><strong><?=e($r['titulo'])?></strong><div class="small text-muted"><?=e($r['autor'])?></div></td><td><?=e($r['isbn'])?></td><td><?=e($r['categoria'])?></td><td><?=e($r['stock'])?></td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="?editar=<?=$r['id']?>">Editar</a> <a class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar este libro?')" href="?eliminar=<?=$r['id']?>">Eliminar</a></td></tr><?php endforeach;?></tbody></table></div></div></div></div>
+<?php require 'partials/footer.php'; ?>
